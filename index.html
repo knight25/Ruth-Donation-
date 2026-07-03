@@ -5,26 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Ruth Donation</title>
   <script src="https://js.paystack.co/v1/inline.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <style>
-    .circle-container {
-      position: relative;
-      width: 200px;
-      height: 200px;
-    }
-    .circle-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #fff;
-      pointer-events: none;
-      user-select: none;
-    }
-  </style>
 </head>
 
 <body class="bg-gray-900 text-white p-4">
@@ -50,9 +31,17 @@
   </header>
 
   <div class="max-w-3xl mx-auto">
-    <div class="circle-container mx-auto my-6">
-      <canvas id="donationChart"></canvas>
-      <div class="circle-center" id="donationTarget">₦0</div>
+    
+    <div class="bg-gray-800 p-6 rounded shadow mb-6 text-center">
+      <h2 class="text-xl font-bold mb-2 text-gray-200">Fundraising Progress</h2>
+      <div class="flex justify-between text-sm text-gray-400 mb-1 px-1">
+        <span id="donationTarget">Raised: ₦0</span>
+        <span>Goal: ₦1,000,000</span>
+      </div>
+      <div class="w-full bg-gray-700 rounded-full h-6 overflow-hidden relative shadow-inner">
+        <div id="progressBar" class="bg-green-500 h-6 rounded-full transition-all duration-500 ease-out" style="width: 0%;"></div>
+      </div>
+      <p id="progressPercentage" class="text-sm text-green-400 font-semibold mt-2">0% Completed</p>
     </div>
 
     <div class="bg-gray-800 p-4 rounded shadow mb-4">
@@ -65,7 +54,7 @@
       </form>
     </div>
 
-      <div class="bg-gray-800 p-4 mt-4 rounded shadow">
+    <div class="bg-gray-800 p-4 mt-4 rounded shadow">
       <h2 class="text-lg font-semibold mb-2">Items to Purchase</h2>
       <div class="grid grid-cols-2 gap-4">
         <div class="text-center">
@@ -83,68 +72,27 @@
       <h1 class="text-lg font-semibold mb-2">Donation History</h1>
       <ul id="donationHistory" class="text-sm text-gray-300"></ul>
     </div>
-
-
   </div>
 
   <script>
-  let chart = null; 
   const goalAmount = 1000000;
   let donatedSoFar = 0;
 
-  // Wrap everything safely inside DOMContentLoaded
+  // Initial load tracking logic
   document.addEventListener("DOMContentLoaded", () => {
-    initChart();
     fetchDonations();
-
-    // Auto-refresh layout iframe securely
-    const baseUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSXE-beOlC6dad-8WdX5qUNhcXrHIWU19RUJlxik1f3KJUZbCBTw55ZJCkRUMNDmNTMfhElLn879VNr/pubhtml?gid=2117473788&single=true&widget=true&headers=false";
-    const liveSheetElement = document.getElementById("liveSheet");
-    if (liveSheetElement) {
-      liveSheetElement.src = baseUrl + "&v=" + Date.now();
-    }
   });
 
-  function initChart() {
-    const canvas = document.getElementById('donationChart');
-    if (!canvas) {
-      console.error("Canvas element #donationChart not found!");
-      return;
-    }
-    
-    const ctx = canvas.getContext('2d');
-    
-    chart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Donated', 'Remaining'],
-        datasets: [{
-          data: [0, goalAmount],
-          backgroundColor: ['#10B981', '#374151'],
-          borderWidth: 1,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '70%',
-        plugins: {
-          legend: { display: false }
-        }
-      }
-    });
-  }
-
-  // Update chart graphics and center text metric
-  function updateChart(donated) {
-    if (!chart) return; 
+  // Linear straight progress updating workflow
+  function updateProgressBar(donated) {
     donatedSoFar = donated;
-    const remaining = Math.max(goalAmount - donatedSoFar, 0);
-    chart.data.datasets[0].data = [donatedSoFar, remaining];
-    chart.update();
-
+    const calculatedPercentage = Math.min((donatedSoFar / goalAmount) * 100, 100);
+    
+    document.getElementById('progressBar').style.width = `${calculatedPercentage}%`;
+    document.getElementById('progressPercentage').textContent = `${calculatedPercentage.toFixed(1)}% Completed`;
+    
     const formattedAmount = donatedSoFar.toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 });
-    document.getElementById('donationTarget').textContent = formattedAmount;
+    document.getElementById('donationTarget').textContent = `Raised: ${formattedAmount}`;
   }
 
   // Submit form handler
@@ -171,8 +119,8 @@
 
         sendToGoogleForms(donationData);
         
-        // Instant visual feedback
-        updateChart(donatedSoFar + amount); 
+        // Immediate local visual display update
+        updateProgressBar(donatedSoFar + amount); 
         
         alert("Thank you for your donation! 🎉");
         
@@ -279,10 +227,10 @@
     }
   }
 
-  // Update frontend view history layout 
+  // Update frontend view history layout and progress values
   function updateChartAndHistory(donations) {
     const total = donations.reduce((sum, entry) => sum + entry.amount, 0);
-    updateChart(total);
+    updateProgressBar(total);
 
     const latestDonations = donations.slice(-10).reverse(); 
     const historyContainer = document.getElementById('donationHistory');
