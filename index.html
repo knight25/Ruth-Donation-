@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ruth Donation</title>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .circle-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+    .circle-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #fff;
+      pointer-events: none;
+      user-select: none;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-900 text-white p-4">
+  <header class="bg-gray-800 p-4 rounded shadow text-center mb-6">
+    <h3 class="text-xl md:text-2xl font-bold text-white tracking-wide mt-4">
+        HELP SAVE RUTH'S LIFE: URGENT SURGERY NEEDED 🩺🏥   
+    </h3>
+    <p class="text-sm md:text-base text-gray-300 mt-3 leading-7">
+        Our beloved Ruth has been diagnosed with a serious tumor affecting her jaw/teeth area. Doctors have informed us that she urgently needs surgery to prevent the condition from worsening and to give her the best chance at recovery.
+        <br><br>
+        This has been a heartbreaking and difficult time for our family. Unfortunately, the cost of the surgery and medical care is far beyond what we can afford on our own, and time is not on our side.
+        <br><br>
+        We are humbly asking for your support. Every donation, no matter how small, will go directly toward Ruth's surgery, treatment, and recovery. If you are unable to donate, please consider sharing this fundraiser with others.
+        <br><br>
+        Your kindness, prayers, and generosity could help save Ruth's life and give her the chance to look forward to a healthy future.
+        <br><br>
+        Thank you from the bottom of our hearts for standing with Ruth during this critical time.
+        <br><br>
+        Please donate and share. Together, we can help save Ruth's life. ❤️
+    </p>
+    <br><br>
+    <p class="text-lg font-medium text-blue-400">Donate now and be a part of my story 💙</p>
+  </header>
+
+  <div class="max-w-3xl mx-auto">
+    <div class="circle-container mx-auto my-6">
+      <canvas id="donationChart"></canvas>
+      <div class="circle-center" id="donationTarget">₦0</div>
+    </div>
+
+    <div class="bg-gray-800 p-4 rounded shadow mb-4">
+      <form id="registration-form" onsubmit="submitForm(event)">
+        <h2 class="text-lg font-semibold mb-2">Make a Donation</h2>
+        <input type="text" name="fullname" id="fullname" placeholder="Full Name" class="border p-2 w-full mb-2 text-black" required>
+        <input type="email" name="email" id="email" placeholder="Enter your Email" class="border p-2 w-full mb-2 text-black" required>
+        <input type="number" name="amount" id="amount" placeholder="Enter Amount in Naira" class="border p-2 w-full mb-2 text-black" required>
+        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-10 py-3 rounded-full block mx-auto shadow-lg transition duration-200 ease-in-out uppercase tracking-wide font-semibold w-72 mt-3">Donate</button>
+      </form>
+    </div>
+
+    <div class="bg-gray-800 p-4 mt-4 rounded shadow">
+      <h1 class="text-lg font-semibold mb-2">Donation History</h1>
+      <ul id="donationHistory" class="text-sm text-gray-300"></ul>
+       <div style="overflow-x:auto;">
+       <iframe
+          id="liveSheet"
+          width="100%"
+          height="400"
+          frameborder="0">
+       </iframe>
+       </div>
+    </div>
+
+    <div class="bg-gray-800 p-4 mt-4 rounded shadow">
+      <h2 class="text-lg font-semibold mb-2">Items to Purchase</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="text-center">
+          <img src="./images/img1.jpg" class="w-64 max-h-64 h-auto rounded mx-auto" alt="Medical Image 1">
+          <p class="mt-1 text-white">Image 1</p>
+        </div>
+        <div class="text-center">
+          <img src="./images/img2.jpg" class="w-64 max-h-64 h-auto rounded mx-auto" alt="Medical Image 2">
+          <p class="mt-1 text-white">Image 2</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  let chart = null; 
+  const goalAmount = 1000000;
+  let donatedSoFar = 0;
+
+  // Wrap everything safely inside DOMContentLoaded
+  document.addEventListener("DOMContentLoaded", () => {
+    initChart();
+    fetchDonations();
+
+    // Auto-refresh layout iframe securely
+    const baseUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSXE-beOlC6dad-8WdX5qUNhcXrHIWU19RUJlxik1f3KJUZbCBTw55ZJCkRUMNDmNTMfhElLn879VNr/pubhtml?gid=2117473788&single=true&widget=true&headers=false";
+    const liveSheetElement = document.getElementById("liveSheet");
+    if (liveSheetElement) {
+      liveSheetElement.src = baseUrl + "&v=" + Date.now();
+    }
+  });
+
+  function initChart() {
+    const canvas = document.getElementById('donationChart');
+    if (!canvas) {
+      console.error("Canvas element #donationChart not found!");
+      return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    chart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Donated', 'Remaining'],
+        datasets: [{
+          data: [0, goalAmount],
+          backgroundColor: ['#10B981', '#374151'],
+          borderWidth: 1,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  // Update chart graphics and center text metric
+  function updateChart(donated) {
+    if (!chart) return; 
+    donatedSoFar = donated;
+    const remaining = Math.max(goalAmount - donatedSoFar, 0);
+    chart.data.datasets[0].data = [donatedSoFar, remaining];
+    chart.update();
+
+    const formattedAmount = donatedSoFar.toLocaleString('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 });
+    document.getElementById('donationTarget').textContent = formattedAmount;
+  }
+
+  // Submit form handler
+  async function submitForm(event) {
+    event.preventDefault();
+
+    const fullname = document.getElementById('fullname').value;
+    const email = document.getElementById('email').value;
+    const amount = parseInt(document.getElementById('amount').value);
+
+    const handler = PaystackPop.setup({
+      key: 'pk_test_8bfa7b411eb287a07baed7a5c31cccdd4886a578', 
+      email: email,
+      amount: amount * 100,
+      currency: 'NGN',
+      callback: function (response) {
+        const donationData = {
+          Name: fullname,
+          Email: email,
+          Amount: amount,
+          TransactionID: response.reference,
+          PaymentStatus: 'success'
+        };
+
+        sendToGoogleForms(donationData);
+        
+        // Instant visual feedback
+        updateChart(donatedSoFar + amount); 
+        
+        alert("Thank you for your donation! 🎉");
+        
+        setTimeout(fetchDonations, 3000); 
+      },
+      onClose: function () {
+        alert('Transaction was not completed.');
+      }
+    });
+
+    handler.openIframe();
+  }
+
+  // Post data to Google Forms endpoints
+  async function sendToGoogleForms(data) {
+    const formURL1 = 'https://docs.google.com/forms/d/e/1FAIpQLSfA6J3qSJdQN21hcaMgvVglYtPfC0OvW2WKHotmin2nQ9lMMg/formResponse';
+    const formURL2 = 'https://docs.google.com/forms/d/e/1FAIpQLScjGAUcXBJqaearCDkynunJO4zPsZP6zXEO_0mRBfyrfLwooA/formResponse';
+
+    const formData1 = new FormData(); 
+    formData1.append('entry.302751488', data.Name); 
+    formData1.append('entry.1640355794', data.Email); 
+    formData1.append('entry.988678717', data.Amount); 
+
+    const formData2 = new FormData();
+    formData2.append('entry.1324894772', data.Name); 
+    formData2.append('entry.685480829', data.Amount); 
+
+    try {
+      await fetch(formURL1, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: formData1
+      });
+
+      await fetch(formURL2, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: formData2
+      });
+    } catch (e) {
+      console.error("Error submitting to Google Forms:", e);
+    }
+  }
+
+  // Helper function to safely split CSV lines containing commas
+  function splitCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim().replace(/^"|"$/g, ''));
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim().replace(/^"|"$/g, ''));
+    return result;
+  }
+
+  // Fetch records from Google Sheets CSV and calculate total
+  async function fetchDonations() {
+    try {
+      const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vRHOJlNLYoZCukVsZorw0xejm2PoV9mJXoWCF72m_8vnBzINXX6Vi9i8Dx0Kw0hy21DL2e7gnLEPjsk/pub?output=csv');
+      const csvText = await response.text();
+
+      const lines = csvText.trim().split('\n');
+      if (lines.length <= 1) return; 
+
+      const headers = splitCSVLine(lines[0]); 
+
+      const nameIndex = headers.findIndex(h => h.toLowerCase().includes('name'));
+      const emailIndex = headers.findIndex(h => h.toLowerCase().includes('email'));
+      const amountIndex = headers.findIndex(h => h.toLowerCase().includes('amount'));
+      const refIndex = headers.findIndex(h => h.toLowerCase().includes('ref') || h.toLowerCase().includes('transaction'));
+
+      if (amountIndex === -1) {
+        console.error('Amount column not found.');
+        return;
+      }
+
+      const donations = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const row = splitCSVLine(lines[i]); 
+        const amount = parseFloat(row[amountIndex]);
+        
+        const name = nameIndex !== -1 && row[nameIndex] ? row[nameIndex] : (emailIndex !== -1 && row[emailIndex] ? row[emailIndex] : 'Anonymous');
+        const reference = refIndex !== -1 ? row[refIndex] : 'N/A';
+
+        if (!isNaN(amount)) {
+          donations.push({ Name: name, amount, reference });
+        }
+      }
+
+      updateChartAndHistory(donations);
+    } catch (error) {
+      console.error('Error fetching donation data:', error);
+    }
+  }
+
+  // Update frontend view history layout 
+  function updateChartAndHistory(donations) {
+    const total = donations.reduce((sum, entry) => sum + entry.amount, 0);
+    updateChart(total);
+
+    const latestDonations = donations.slice(-10).reverse(); 
+    const historyContainer = document.getElementById('donationHistory');
+    if (!historyContainer) return;
+    historyContainer.innerHTML = '';
+
+    latestDonations.forEach(entry => {
+      const li = document.createElement('li');
+      li.className = "py-1 border-b border-gray-700 last:border-0";
+      li.textContent = `${entry.Name} donated ₦${entry.amount.toLocaleString()}`;
+      historyContainer.appendChild(li);
+    });
+  }
+  </script>
+</body>
+</html>
