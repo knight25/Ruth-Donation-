@@ -68,10 +68,12 @@
       </div>
     </div>
 
-    <div class="bg-gray-800 p-4 mt-4 rounded shadow">
-      <h1 class="text-lg font-semibold mb-2">Donation History</h1>
-      <ul id="donationHistory" class="text-sm text-gray-300"></ul>
-    </div>
+     <div class="bg-gray-800 p-4 mt-4 rounded shadow">
+       <h1 class="text-lg font-semibold mb-2">Donation History</h1>
+        <div class="max-h-64 overflow-y-auto pr-2 scrollbar-thin">
+          <ul id="donationHistory" class="text-sm text-gray-300"></ul>
+        </div>
+      </div>
   </div>
 
   <script>
@@ -228,22 +230,23 @@
   }
 
   // Update frontend view history layout and progress values
-  function updateChartAndHistory(donations) {
-    const total = donations.reduce((sum, entry) => sum + entry.amount, 0);
-    updateProgressBar(total);
+ function updateChartAndHistory(donations) {
+  const total = donations.reduce((sum, entry) => sum + entry.amount, 0);
+  updateProgressBar(total);
 
-    const latestDonations = donations.slice(-10).reverse(); 
-    const historyContainer = document.getElementById('donationHistory');
-    if (!historyContainer) return;
-    historyContainer.innerHTML = '';
+  // Reverses the array so the newest donations stay at the top, keeping the entire history intact
+  const allDonationsSorted = [...donations].reverse(); 
+  const historyContainer = document.getElementById('donationHistory');
+  if (!historyContainer) return;
+  historyContainer.innerHTML = '';
 
-    latestDonations.forEach(entry => {
-      const li = document.createElement('li');
-      li.className = "py-1 border-b border-gray-700 last:border-0";
-      li.textContent = `${entry.Name} donated ₦${entry.amount.toLocaleString()}`;
-      historyContainer.appendChild(li);
-    });
-  }
+  allDonationsSorted.forEach(entry => {
+    const li = document.createElement('li');
+    li.className = "py-1 border-b border-gray-700 last:border-0";
+    li.textContent = `${entry.Name} donated ₦${entry.amount.toLocaleString()}`;
+    historyContainer.appendChild(li);
+  });
+}
   </script>
 </body>
 </html>
